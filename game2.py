@@ -85,6 +85,7 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.image.load("Blue.png")
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.spawn = (x,y)
         self.velocityX = 0
         self.velocityY = 0
         self.terminalVelocityY = 15  # terminal falling velocity of Player
@@ -121,6 +122,8 @@ class Player(pygame.sprite.Sprite):
         self.colX()
         self.rect.y += self.velocityY
         self.colY()
+        if (self.rect.y > GRIDSIZE * GRIDY):
+            self.rect.center = self.spawn
 
     def update(self):
         pressed_keys = pygame.key.get_pressed()  # gets list of currently pressed keys
@@ -164,6 +167,17 @@ class Block(pygame.sprite.Sprite):
             return
         surface.blit(self.image, self.rect)
 
+class Final(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.x = x
+        self.y = y
+        self.image = pygame.image.load("Gold.png")
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
 
 class Crosshair(pygame.sprite.Sprite):  # cursor that places/destroys objects
     def __init__(self, x, y):
@@ -335,25 +349,29 @@ def drawObjects():  # LOAD OBJECTS FROM GRID
     TempX = -1
     TempY = 0
     TempPlayer = None
+    TempFinal = None
     for x in range(0, len(GRID)):
         TempX = TempX + 1
-        if (TempX == GRIDX):
+        if TempX == GRIDX:
             TempX = 0
             TempY = TempY + 1
-        if (GRID[x] == 1):  # block case
+        if GRID[x] == 1:  # block case
             print(f"{TempX},{TempY}")
             BLOCKS.append(Block(TempX * GRIDSIZE + 16, TempY * GRIDSIZE + 16))
-        if (GRID[x] == 2):  # enemy case
+        if GRID[x] == 2:  # enemy case
             print(f"{TempX},{TempY}")
             ENEMIES.append(Enemy(TempX * GRIDSIZE + 16, TempY * GRIDSIZE + 16))
-        if (GRID[x] == 3): # player case
+        if GRID[x] == 3: # player case
             TempPlayer = Player(TempX * GRIDSIZE + 16, TempY * GRIDSIZE + 16)
-    return TempPlayer or Player(16, 16)
+        if GRID[x] == 4: # final pos "goal square"
+            TempFinal = Final(TempX * GRIDSIZE + 16, TempY * GRIDSIZE + 16)
+
+    return (TempPlayer or Player(16,16)), (TempFinal or Final(48,16))
 
 
 ### LEVEL LOADER
 
-def loader(filename="lvl"):
+def loader(filename="./levels/1"):
     file = open(filename, 'r')
     gridy = 0  # iterate over each line of level file
     grid_temp = []
@@ -375,10 +393,13 @@ def loader(filename="lvl"):
                 grid_temp.append(2)
             if line[char_idx] == 'P':
                 grid_temp.append(3)
+            if line[char_idx] == 'F':
+                grid_temp.append(4)
         grid_temp.extend([0] * (gridx - len(line) + 1))
         gridy += 1  # the amount of lines is the value of GRIDY
-    return grid_temp, gridx, gridy
 
+    return grid_temp, gridx, gridy
+###
 
 ### command line tools
 def handleCommand(var1,var2):
@@ -388,12 +409,16 @@ def handleCommand(var1,var2):
    if var1 == "state":
        GAMESTATE = str(var2.upper())
        print(f"state set to {var2.upper()}")
-   if var1 == "print":
+   elif var1 == "print":
        print(var2)
-reCommand = re.compile(r'/(\w+) (\w+)')
+   elif var1 == "respawn":
+       P1.rect.center = P1.spawn
+       P1.update()
+       print("done")
+reCommand = re.compile(r'/(\w+) (\w*)') # regex object to handle commands `/command [args]`
 ###
 
-GRID, GRIDX, GRIDY = loader("lvl")
+GRID, GRIDX, GRIDY = loader()
 print(GRIDX)
 
 HEIGHT = GRIDSIZE * GRIDY + 64
@@ -401,7 +426,9 @@ WIDTH = GRIDSIZE * GRIDX + 32
 
 displaysurface = pygame.display.set_mode((WIDTH, HEIGHT), flags=pygame.RESIZABLE, vsync=1)
 pygame.display.set_caption("Game Thing")
-P1 = drawObjects()
+
+P1, final = drawObjects()
+
 BUTTONS = [Button(GRIDX * GRIDSIZE + 16, 16, "Red.png", "SelectWall"),
            Button(GRIDX * GRIDSIZE + 16, 16 + 32, "Green.png", "SelectEnemy"),
            Button(GRIDX * GRIDSIZE + 16, 16 + 32*2, "Blue.png", "ToggleMode")]
@@ -426,7 +453,7 @@ while is_running:
             COMMANDINPUT = input("COMMAND INPUT > ")
             OUTPUT = reCommand.search(COMMANDINPUT)
             if OUTPUT:
-                handleCommand(OUTPUT.group(1), OUTPUT.group(2))
+                handleCommand(OUTPUT.group(1), OUTPUT.group(2) or "")
 
     if pygame.mouse.get_pressed()[2]: # right mouse down
         cHair.remove()
@@ -444,6 +471,7 @@ while is_running:
     displaysurface.fill((255, 255, 255))
     P1.draw(displaysurface)
     cHair.draw(displaysurface)
+    final.draw(displaysurface)
     for button in BUTTONS:
         button.draw(displaysurface)
     for block in BLOCKS:
