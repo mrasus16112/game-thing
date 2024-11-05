@@ -26,20 +26,20 @@ CAMERAX = 0
 CAMERAY = 0
 
 
-GRID = [
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0,
-   1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-] # temp
+# GRID = [
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 1, 0,
+#    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+# ] # temp
 # GRID DEFINES LEVEL LAYOUT:
 # 0 = AIR
 # 1 = BLOCK
@@ -229,8 +229,8 @@ class Player(pygame.sprite.Sprite):
        self.rect.x += self.velocityX
        self.colX()
        self.rect.y += self.velocityY
-       self.colY()
-       if (self.rect.y > GRIDSIZE * GRIDY):
+       self.colY() # check x and y collision separately
+       if (self.rect.y > GRIDSIZE * GRIDY): # stop player from leaving grid boundaries
            self.rect.center = self.spawn
 
    def update(self):
@@ -338,17 +338,19 @@ class Crosshair(pygame.sprite.Sprite):  # cursor that places/destroys objects
        MouseY = ceil(pygame.mouse.get_pos()[1] / GRIDSIZE) * GRIDSIZE - GRIDSIZE / 2
 
        if self.mode == 'SelectWall':
+           if GRID[getPosRaw(self.x, self.y)] != 1:
+             BLOCKS.append(Block(self.x, self.y))
+             print("Created Block")
            GRID[getPosRaw(self.x, self.y)] = 1
-           BLOCKS.append(Block(self.x, self.y))
-           print("Created Block")
        elif self.mode == 'SelectEnemy':
            testRect = Rect((self.rect.left, self.rect.top + GRIDSIZE),
                            (GRIDSIZE, GRIDSIZE))  # testRect: enemies can only be placed directly on ground
            if testRect.collidelist(BLOCKS) == -1:
                return
-           GRID[getPosRaw(self.x, self.y)] = 2
-           ENEMIES.append(Enemy(self.x, self.y))
-           print("Created Enemy")
+           if GRID[getPosRaw(self.x, self.y)] != 2:
+               ENEMIES.append(Enemy(self.x, self.y))
+               print("Created Enemy")
+           ENEMIES[getPosRaw(self.x, self.y)] = 1
 
 
    def remove(self):
