@@ -159,7 +159,6 @@ class Player(pygame.sprite.Sprite):
        self.image = self.imageSRC
        self.imageC = pygame.image.load("Blue.png")
 
-
        self.frameStart = 0
        self.frameEnd = 4
        self.frameMax = 4
@@ -171,6 +170,8 @@ class Player(pygame.sprite.Sprite):
 
 
        self.rect = self.imageC.get_rect()
+
+       self.imageC.set_alpha(0)
        self.rect.center = (x, y)
        self.spawn = (x, y)
        self.velocityX = 0
@@ -610,6 +611,9 @@ while is_running:
            exit()
        if event.type == KEYDOWN and event.key == K_p:
            print(GRID)
+       if event.type == MOUSEBUTTONUP and event.button == 1: # left click
+            for button in BUTTONS:
+                button.update()
        if event.type == KEYDOWN and event.key == K_COMMA:
            COMMANDINPUT = input("COMMAND INPUT > ")
            OUTPUT = reCommand.search(COMMANDINPUT)
@@ -620,8 +624,8 @@ while is_running:
    if pygame.mouse.get_pressed()[0]:
        if(GAMESTATE == "EDITOR"):
            Crosshair.create(cHair)
-       for bot in BUTTONS:
-           bot.update()
+       # for bot in BUTTONS:
+       #     bot.update()
    if pygame.mouse.get_pressed()[2]:
        if(GAMESTATE == "EDITOR"):
            Crosshair.remove(cHair)
